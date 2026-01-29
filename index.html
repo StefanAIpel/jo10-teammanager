@@ -53,11 +53,8 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     .logo {
-      width: 40px; height: 40px;
-      background: var(--primary);
-      border-radius: 50%;
+      width: 36px; height: 36px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
     }
     .header-text h1 { font-size: 0.80rem; font-weight: 800; color: var(--primary); }
     .header-text p { color: var(--primary); font-size: 0.55rem; font-weight: 600; opacity: 0.8; }
@@ -938,7 +935,7 @@
   </div>
 
   <div class="header">
-    <div class="logo">⚽</div>
+    <div class="logo"><img src="icon-192.png" alt="logo" style="width:32px;height:32px;border-radius:8px;"></div>
     <div class="header-text">
       <h1>VV Hooglanderveen</h1>
       <p>JO10 • Seizoen 25-26 • Fase 3</p>
@@ -1432,7 +1429,7 @@
         ]
       },
       'jo10-3': {
-        naam: 'JO10-3', klasse: '1e Klasse 12', trainer: 'Gigi, Niels', manager: 'Hassan',
+        naam: 'JO10-3', klasse: '1e Klasse 12', trainer: 'Gigi', assistent: 'Niels', manager: 'Hassan',
         spelers: ['Younes', 'Zayn', 'Siem', 'Freek', 'Morris', 'Seb', 'Job', 'Maud'],
         wedstrijden: [
           { id:0, ronde:'-', datum:'Za 17 jan', sortDate:'2026-01-17', type:'uit', tegenstander:'JO10-2 (onderling)', tijd:'09:00', verzamelTijd:'08:40', verzamelPlek:'Kleedkamers', veld:'Veld 2', kleedkamer:'', aftrap:'09:00', aanvoerder:'', spelbegeleider:'JO10-2', chauffeurs:[], afwezig:['Seb'], invallers:[], weer:'', locatieUrl:'', info:'Thuislocatie - geen vervoer nodig', uitslag:'2-3', isOnderling: true },
@@ -2055,8 +2052,8 @@
       empty.style.display = 'none';
       
       list.innerHTML = mixEvents.map(m => {
-        const badge = m.type === 'toernooi' ? '🏆 Toernooi' : '⚽ Oefen';
-        const teamBadges = (m.teams || []).map(tid => teams[tid]?.naam || tid).join(', ');
+        const badge = m.type === 'toernooi' ? '🏆 TOERNOOI' : 'OEFEN';
+        const teamBadges = (m.teams || []).length === 3 ? 'JO10-1/2/3' : ((m.teams || []).map(tid => teams[tid]?.naam || tid).join(', '));
         const thuisUitIcon = m.thuisUit === 'thuis' ? '🏠' : '🚗';
         
         let html = `<div class="mix-card">
@@ -2066,7 +2063,7 @@
           </div>`;
         
         // Grid layout zoals Schema (Oefen)
-        html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:10px 0;font-size:0.8rem;">
+        html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin:8px 0;font-size:0.7rem;opacity:0.85;">
             <div>⏰ Verzamelen: <strong style="color:var(--accent);">${m.verzamelTijd || 'NTB'}</strong></div>
             <div>⚽ Aftrap: <strong style="color:var(--accent);">${m.aftrap || 'NTB'}</strong></div>
             <div>🏟 Veld: <strong style="color:var(--accent);">${m.veld || 'NTB'}</strong></div>
@@ -2316,7 +2313,8 @@
       
       // Voeg Events toe
       mixEvents.forEach(m => {
-        const teamNames = (m.teams || []).map(tid => teams[tid]?.naam || tid).join(', ') || 'Events';
+        const teamIds = m.teams || [];
+        const teamNames = teamIds.length === 3 ? 'JO10-1/2/3' : (teamIds.length === 0 ? 'Events' : teamIds.map(tid => teams[tid]?.naam || tid).join(', '));
         const sortD = m.sortDate || parseDatumToSort(m.datum) || '9999-99-99';
         all.push({
           sortDate: sortD,
