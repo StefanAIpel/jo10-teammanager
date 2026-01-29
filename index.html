@@ -1429,7 +1429,7 @@
         ]
       },
       'jo10-3': {
-        naam: 'JO10-3', klasse: '1e Klasse 12', trainer: 'Gigi', assistent: 'Niels', manager: 'Hassan',
+        naam: 'JO10-3', klasse: '1e Klasse 12', trainer: 'Gigi, Niels', manager: 'Hassan',
         spelers: ['Younes', 'Zayn', 'Siem', 'Freek', 'Morris', 'Seb', 'Job', 'Maud'],
         wedstrijden: [
           { id:0, ronde:'-', datum:'Za 17 jan', sortDate:'2026-01-17', type:'uit', tegenstander:'JO10-2 (onderling)', tijd:'09:00', verzamelTijd:'08:40', verzamelPlek:'Kleedkamers', veld:'Veld 2', kleedkamer:'', aftrap:'09:00', aanvoerder:'', spelbegeleider:'JO10-2', chauffeurs:[], afwezig:['Seb'], invallers:[], weer:'', locatieUrl:'', info:'Thuislocatie - geen vervoer nodig', uitslag:'2-3', isOnderling: true },
@@ -1833,7 +1833,12 @@
       const allStaff = ['David', 'Stefan', 'Dominique', 'Hassan', 'Mark']; // Hoofdtrainer + Teammanagers
       Object.keys(teams).forEach(tid => {
         teams[tid].spelers.forEach(s => { if (!allPlayers.includes(s)) allPlayers.push(s); });
-        if (teams[tid].trainer && !allStaff.includes(teams[tid].trainer)) allStaff.push(teams[tid].trainer);
+        if (teams[tid].trainer) {
+          // Split comma-separated trainers
+          teams[tid].trainer.split(',').map(t => t.trim()).forEach(t => {
+            if (t && !allStaff.includes(t)) allStaff.push(t);
+          });
+        }
         if (teams[tid].assistent && !allStaff.includes(teams[tid].assistent)) allStaff.push(teams[tid].assistent);
         if (teams[tid].teammanager && !allStaff.includes(teams[tid].teammanager)) allStaff.push(teams[tid].teammanager);
       });
@@ -2205,9 +2210,27 @@
     
     function renderMatches() {
       const t = teams[currentTeam];
-      const w = t.wedstrijden;
       const teamNaam = t.naam;
-      document.getElementById('matchList').innerHTML = w.map(m => {
+      
+      // Combineer wedstrijden en events, sorteer chronologisch
+      const teamMixEvents = mixEvents.filter(ev => (ev.teams || []).includes(currentTeam)).map(ev => ({
+        ...ev, isEvent: true, sortDate: ev.sortDate || '9999-99-99'
+      }));
+      const wedstrijden = t.wedstrijden.filter(m => m.type !== 'vrij'); // Verberg vakantie blokjes
+      const combined = [...wedstrijden, ...teamMixEvents].sort((a, b) => (a.sortDate || '').localeCompare(b.sortDate || ''));
+      
+      document.getElementById('matchList').innerHTML = combined.map(m => {
+        // Event card
+        if (m.isEvent) {
+          return `<div class="match-card" style="background:rgba(155,89,182,0.15);border-left:3px solid rgba(155,89,182,0.8);cursor:pointer;" onclick="switchTab('events')">
+            <div class="match-head">
+              <div><div class="date">${m.datum}</div><div class="opponent">${m.naam || 'Event'}</div></div>
+              <span class="match-badge" style="background:rgba(155,89,182,0.8);">${m.type === 'toernooi' ? 'TOERNOOI' : 'OEFEN'}</span>
+            </div>
+            <div style="padding:8px 12px;font-size:0.7rem;opacity:0.8;">⏰ ${m.verzamelTijd || 'NTB'} • 📍 ${m.verzamelPlek || 'NTB'} • <span style="color:var(--accent);">Details →</span></div>
+          </div>`;
+        }
+        // Normale wedstrijd
         const isPast = m.sortDate < TODAY || m.uitslag;
         if (m.type === 'info') return `<div class="match-card" style="text-align:center;padding:14px;background:rgba(255,215,0,0.15)"><p style="opacity:0.6;font-size:0.7rem;">${m.datum}</p><p style="color:var(--accent);font-weight:700;">🚀 ${m.tegenstander}</p></div>`;
         const tc = m.type;
@@ -2273,31 +2296,7 @@
         return html;
       }).join('');
       
-      // Voeg MIX verwijzingen toe voor dit team
-      const teamMixEvents = mixEvents.filter(m => (m.teams || []).includes(currentTeam));
-      if (teamMixEvents.length > 0) {
-        let mixHtml = '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed rgba(255,255,255,0.2);">';
-        mixHtml += '<div class="section-title" style="font-size:0.8rem;margin-bottom:8px;">🎯 Events</div>';
-        teamMixEvents.forEach(m => {
-          const icon = m.type === 'toernooi' ? '🏆' : '⚽';
-          mixHtml += `<div class="match-card" style="background:rgba(155,89,182,0.15);border-left:3px solid rgba(155,89,182,0.8);cursor:pointer;" onclick="switchTab('events')">
-            <div class="match-head">
-              <div>
-                <div class="date">${m.datum}</div>
-                <div class="opponent">${icon} ${m.naam || 'Event'}</div>
-              </div>
-              <span class="match-badge" style="background:rgba(155,89,182,0.8);">${m.type === 'toernooi' ? 'Toernooi' : 'Oefen'}</span>
-            </div>
-            <div style="padding:8px 12px;font-size:0.75rem;opacity:0.8;">
-              ⏰ ${m.verzamelTijd || 'NTB'} • 📍 ${m.verzamelPlek || 'NTB'}<br>
-              <span style="color:var(--accent);">Klik voor details in Events tab →</span>
-            </div>
-          </div>`;
-        });
-        mixHtml += '</div>';
-        document.getElementById('matchList').innerHTML += mixHtml;
       }
-    }
     
     function renderAllMatches() {
       let html = '';
@@ -2339,12 +2338,10 @@
         grouped[d].forEach(m => {
           if (m.isMix) {
             // Event item - link naar Events tab
-            const icon = m.type === 'toernooi' ? '🏆' : '⚽';
-            const thuisUitIcon = m.thuisUit === 'thuis' ? '🏠' : '🚗';
             html += `<div class="all-match mix-entry" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);border-left:3px solid rgba(155,89,182,0.8);">
               <span class="team" style="color:rgba(155,89,182,1);">${m.teamNaam}</span>
               <div class="info">
-                <div class="opp">${icon} ${m.tegenstander} ${m.type !== 'toernooi' ? thuisUitIcon : ''}</div>
+                <div class="opp">${m.tegenstander}</div>
                 <div class="det-row">
                   <span class="det-left">${m.verzamelTijd ? `⏰${m.verzamelTijd}` : ''}${m.verzamelPlek ? ` • 📍${m.verzamelPlek}` : ''}</span>
                   <span class="det-right" style="color:var(--accent);">Details in Events →</span>
@@ -2354,7 +2351,7 @@
             </div>`;
           } else {
             // Normale wedstrijd
-            const thuisUit = m.type === 'thuis' ? '🏠' : '🚗';
+            const thuisUitLabel = m.type === 'thuis' ? '(thuis)' : '(uit)';
             const locAdres = m.type === 'thuis' ? 'VV Hooglanderveen' : (m.locatieAdres || m.tegenstander.split(' ')[0]);
             const veldInfo = m.veld ? m.veld : '';
             const verzamelInfo = m.verzamelTijd && m.verzamelTijd !== 'NTB' ? m.verzamelTijd : '';
@@ -2363,13 +2360,13 @@
             
             let detailLeft = verzamelInfo ? `⏰${verzamelInfo}` : '';
             if (verzamelPlek && m.type !== 'thuis') detailLeft += (detailLeft ? ' • ' : '') + `📍${verzamelPlek}`;
-            let detailRight = `${thuisUit}${locAdres}`;
+            let detailRight = locAdres;
             if (veldInfo) detailRight += ` • 🥅${veldInfo}`;
             
             html += `<div class="all-match" onclick="goToMatch('${m.teamId}',${m.matchIdx})" style="cursor:pointer;">
               <span class="team">${m.teamNaam}</span>
               <div class="info">
-                <div class="opp">${m.tegenstander}</div>
+                <div class="opp">${m.tegenstander} <span style="font-size:0.7rem;opacity:0.7;">${thuisUitLabel}</span></div>
                 <div class="det-row">
                   <span class="det-left">${detailLeft}</span>
                   <span class="det-right">${detailRight}</span>
