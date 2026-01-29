@@ -2199,16 +2199,18 @@
       
       document.getElementById('playedMatches').innerHTML = played.length ? played.map(m => {
         const result = getScoreResult(m.uitslag, m.type);
-        const thuisUit = m.type === 'thuis' ? '(thuis)' : '(uit)';
-        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander} <span style="font-size:0.6rem;opacity:0.6;">${thuisUit}</span></div>${m.uitslag ? `<span class="badge score ${result}">${m.uitslag}</span>` : `<span class="badge ${m.type}">${m.type === 'thuis' ? 'T' : 'U'}</span>`}</div>`;
+        const hasThuisUit = m.tegenstander && (m.tegenstander.includes('(thuis)') || m.tegenstander.includes('(uit)'));
+        const thuisUit = hasThuisUit ? '' : (m.type === 'thuis' ? '(thuis)' : '(uit)');
+        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander}${thuisUit ? ` <span style="font-size:0.6rem;opacity:0.6;">${thuisUit}</span>` : ''}</div>${m.uitslag ? `<span class="badge score ${result}">${m.uitslag}</span>` : `<span class="badge ${m.type}">${m.type === 'thuis' ? 'T' : 'U'}</span>`}</div>`;
       }).join('') : '<p style="opacity:0.6;font-size:0.7rem;">Nog geen wedstrijden gespeeld</p>';
       
       document.getElementById('upcomingMatches').innerHTML = upcoming.slice(0, 5).map(m => {
         if (m.isEvent) {
           return `<div class="programma-item" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander}</div><span class="badge" style="background:rgba(155,89,182,0.8);">EVENT</span></div>`;
         }
-        const thuisUit = m.type === 'thuis' ? '(thuis)' : '(uit)';
-        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander} <span style="font-size:0.55rem;opacity:0.6;">${thuisUit}</span></div><span class="badge competitie">COMPETITIE</span></div>`;
+        const hasThuisUit = m.tegenstander && (m.tegenstander.includes('(thuis)') || m.tegenstander.includes('(uit)'));
+        const thuisUit = hasThuisUit ? '' : (m.type === 'thuis' ? '(thuis)' : '(uit)');
+        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander}${thuisUit ? ` <span style="font-size:0.55rem;opacity:0.6;">${thuisUit}</span>` : ''}</div><span class="badge competitie">COMPETITIE</span></div>`;
       }).join('') || '<p style="opacity:0.6;font-size:0.7rem;">Geen wedstrijden gepland</p>';
     }
     
@@ -2355,7 +2357,9 @@
             </div>`;
           } else {
             // Normale wedstrijd
-            const thuisUitLabel = m.type === 'thuis' ? '(thuis)' : '(uit)';
+            // Only add (thuis)/(uit) if not already in opponent name
+            const hasThuisUit = m.tegenstander && (m.tegenstander.includes('(thuis)') || m.tegenstander.includes('(uit)'));
+            const thuisUitLabel = hasThuisUit ? '' : (m.type === 'thuis' ? '(thuis)' : '(uit)');
             const locAdres = m.type === 'thuis' ? 'VV Hooglanderveen' : (m.locatieAdres || m.tegenstander.split(' ')[0]);
             const veldInfo = m.veld ? m.veld : '';
             const verzamelInfo = m.verzamelTijd && m.verzamelTijd !== 'NTB' ? m.verzamelTijd : '';
@@ -2370,7 +2374,7 @@
             html += `<div class="all-match" onclick="goToMatch('${m.teamId}',${m.matchIdx})" style="cursor:pointer;">
               <span class="team">${m.teamNaam}</span>
               <div class="info">
-                <div class="opp">${m.tegenstander} <span style="font-size:0.65rem;opacity:0.6;">${thuisUitLabel}</span></div>
+                <div class="opp">${m.tegenstander}${thuisUitLabel ? ` <span style="font-size:0.65rem;opacity:0.6;">${thuisUitLabel}</span>` : ''}</div>
                 <div class="det-row" style="font-size:0.65rem;">
                   <span class="det-left">${detailLeft}</span>
                   <span class="det-right">${detailRight}</span>
