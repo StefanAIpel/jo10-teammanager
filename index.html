@@ -274,8 +274,8 @@
     
     /* PROGRAMMA */
     .programma-title {
-      font-size: 0.8rem; color: var(--accent);
-      font-weight: 600; margin: 16px 0 8px;
+      font-size: 0.85rem; color: var(--accent);
+      font-weight: 700; margin: 16px 0 8px;
       padding-bottom: 6px;
       border-bottom: 1px solid rgba(255,215,0,0.2);
     }
@@ -296,6 +296,7 @@
     }
     .programma-item .badge.thuis { background: var(--accent); color: var(--primary); }
     .programma-item .badge.uit { background: var(--red); color: white; }
+    .programma-item .badge.competitie { background: var(--green); color: white; }
     .programma-item .badge.score { background: var(--green); color: white; }
     .programma-item .badge.score.loss { background: var(--red); }
     .programma-item .badge.score.draw { background: var(--accent); color: var(--primary); }
@@ -2171,7 +2172,7 @@
     }
     
     function renderProgramma() {
-      const w = teams[currentTeam].wedstrijden.filter(m => m.type !== 'info' && m.type !== 'ntb');
+      const w = teams[currentTeam].wedstrijden.filter(m => m.type !== 'info' && m.type !== 'ntb' && m.type !== 'vrij');
       const played = w.filter(m => m.sortDate < TODAY || m.uitslag);
       
       // Voeg events toe aan upcoming
@@ -2186,6 +2187,7 @@
             datum: ev.datum,
             tegenstander: ev.naam || ev.tegenstander || 'Event',
             type: ev.type === 'toernooi' ? 'toernooi' : 'oefenwedstrijd',
+            thuisUit: ev.thuisUit,
             isEvent: true
           });
         }
@@ -2196,15 +2198,17 @@
       
       document.getElementById('playedMatches').innerHTML = played.length ? played.map(m => {
         const result = getScoreResult(m.uitslag, m.type);
-        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander}</div>${m.uitslag ? `<span class="badge score ${result}">${m.uitslag}</span>` : `<span class="badge ${m.type}">${m.type === 'thuis' ? 'T' : 'U'}</span>`}</div>`;
+        const thuisUit = m.type === 'thuis' ? '(thuis)' : '(uit)';
+        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander} <span style="font-size:0.6rem;opacity:0.6;">${thuisUit}</span></div>${m.uitslag ? `<span class="badge score ${result}">${m.uitslag}</span>` : `<span class="badge ${m.type}">${m.type === 'thuis' ? 'T' : 'U'}</span>`}</div>`;
       }).join('') : '<p style="opacity:0.6;font-size:0.7rem;">Nog geen wedstrijden gespeeld</p>';
       
       document.getElementById('upcomingMatches').innerHTML = upcoming.slice(0, 5).map(m => {
         if (m.isEvent) {
-          const icon = m.type === 'toernooi' ? '🏆' : '⚽';
-          return `<div class="programma-item" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);"><div class="date">${m.datum}</div><div class="opp">${icon} ${m.tegenstander}</div><span class="badge" style="background:rgba(155,89,182,0.8);">EVENT</span></div>`;
+          const evThuisUit = m.thuisUit === 'thuis' ? '(thuis)' : '(uit)';
+          return `<div class="programma-item" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander} <span style="font-size:0.55rem;opacity:0.6;">${evThuisUit}</span></div><span class="badge" style="background:rgba(155,89,182,0.8);">EVENT</span></div>`;
         }
-        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander}</div><span class="badge ${m.type}">${m.type === 'thuis' ? 'THUIS' : 'UIT'}</span></div>`;
+        const thuisUit = m.type === 'thuis' ? '(thuis)' : '(uit)';
+        return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander} <span style="font-size:0.55rem;opacity:0.6;">${thuisUit}</span></div><span class="badge competitie">COMPETITIE</span></div>`;
       }).join('') || '<p style="opacity:0.6;font-size:0.7rem;">Geen wedstrijden gepland</p>';
     }
     
@@ -2216,7 +2220,7 @@
       const teamMixEvents = mixEvents.filter(ev => (ev.teams || []).includes(currentTeam)).map(ev => ({
         ...ev, isEvent: true, sortDate: ev.sortDate || '9999-99-99'
       }));
-      const wedstrijden = t.wedstrijden.filter(m => m.type !== 'vrij'); // Verberg vakantie blokjes
+      const wedstrijden = t.wedstrijden.filter(m => m.type !== 'vrij' && m.type !== 'ntb'); // Verberg vakantie en NTB blokjes
       const combined = [...wedstrijden, ...teamMixEvents].sort((a, b) => (a.sortDate || '').localeCompare(b.sortDate || ''));
       
       document.getElementById('matchList').innerHTML = combined.map(m => {
@@ -2338,13 +2342,14 @@
         grouped[d].forEach(m => {
           if (m.isMix) {
             // Event item - link naar Events tab
+            const evThuisUit = m.thuisUit === 'thuis' ? '(thuis)' : '(uit)';
             html += `<div class="all-match mix-entry" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);border-left:3px solid rgba(155,89,182,0.8);">
               <span class="team" style="color:rgba(155,89,182,1);">${m.teamNaam}</span>
               <div class="info">
-                <div class="opp">${m.tegenstander}</div>
-                <div class="det-row">
+                <div class="opp">${m.tegenstander} <span style="font-size:0.65rem;opacity:0.6;">${evThuisUit}</span></div>
+                <div class="det-row" style="font-size:0.65rem;">
                   <span class="det-left">${m.verzamelTijd ? `⏰${m.verzamelTijd}` : ''}${m.verzamelPlek ? ` • 📍${m.verzamelPlek}` : ''}</span>
-                  <span class="det-right" style="color:var(--accent);">Details in Events →</span>
+                  <span class="det-right" style="color:var(--accent);">Details →</span>
                 </div>
               </div>
               <span class="time">${m.aftrap || '-'}</span>
@@ -2357,20 +2362,35 @@
             const verzamelInfo = m.verzamelTijd && m.verzamelTijd !== 'NTB' ? m.verzamelTijd : '';
             const verzamelPlek = m.type !== 'thuis' ? (m.verzamelPlek || 'Karwei') : '';
             const scoreClass = m.uitslag ? getScoreResult(m.uitslag, m.type) : '';
+            const chauffeurs = m.chauffeurs && m.chauffeurs.length ? m.chauffeurs.join(', ') : '';
+            const spelbegeleider = m.spelbegeleider || '';
             
             let detailLeft = verzamelInfo ? `⏰${verzamelInfo}` : '';
             if (verzamelPlek && m.type !== 'thuis') detailLeft += (detailLeft ? ' • ' : '') + `📍${verzamelPlek}`;
             let detailRight = locAdres;
             if (veldInfo) detailRight += ` • 🥅${veldInfo}`;
             
+            // Extra row voor chauffeurs (uit) of spelbegeleider (thuis)
+            let extraRow = '';
+            if (m.type === 'thuis' && spelbegeleider) {
+              extraRow = `<div class="det-row" style="margin-top:2px;"><span style="color:#ffd700;font-weight:600;font-size:0.65rem;">🦺 Spelbegeleider: ${spelbegeleider}</span></div>`;
+            } else if (m.type !== 'thuis' && chauffeurs) {
+              extraRow = `<div class="det-row" style="margin-top:2px;"><span style="color:#2ecc71;font-weight:600;font-size:0.65rem;">🚗 Chauffeurs: ${chauffeurs}</span></div>`;
+            }
+            // Opmerkingen
+            if (m.info) {
+              extraRow += `<div class="det-row" style="margin-top:2px;"><span style="opacity:0.7;font-size:0.6rem;">ℹ️ ${m.info}</span></div>`;
+            }
+            
             html += `<div class="all-match" onclick="goToMatch('${m.teamId}',${m.matchIdx})" style="cursor:pointer;">
               <span class="team">${m.teamNaam}</span>
               <div class="info">
-                <div class="opp">${m.tegenstander} <span style="font-size:0.7rem;opacity:0.7;">${thuisUitLabel}</span></div>
-                <div class="det-row">
+                <div class="opp">${m.tegenstander} <span style="font-size:0.65rem;opacity:0.6;">${thuisUitLabel}</span></div>
+                <div class="det-row" style="font-size:0.65rem;">
                   <span class="det-left">${detailLeft}</span>
                   <span class="det-right">${detailRight}</span>
                 </div>
+                ${extraRow}
               </div>
               ${m.uitslag ? `<span class="score ${scoreClass}">${m.uitslag}</span>` : `<span class="time">${m.aftrap || '-'}</span>`}
             </div>`;
