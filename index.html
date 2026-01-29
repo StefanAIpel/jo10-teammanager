@@ -2077,11 +2077,12 @@
           </div>`;
         
         html += `<div class="mix-info">
-            <div>📍 Verzamelplek: <strong>${m.verzamelPlek || 'Karwei'}</strong></div>
-            <div>📍 ${m.locatie || 'Locatie NTB'}</div>
-            ${m.spelbegeleider ? `<div>👤 Spelbegeleider: ${m.spelbegeleider}</div>` : ''}
-            ${m.chauffeurs ? `<div>🚗 Chauffeurs: ${m.chauffeurs}</div>` : ''}
-            ${m.weer ? `<div>🌤 ${m.weer}</div>` : ''}
+            <div style="font-size:0.7rem;">📍 Verzamelplek: <strong>${m.verzamelPlek || 'Karwei'}</strong></div>
+            <div style="font-size:0.7rem;">📍 ${m.locatie || 'Locatie NTB'}</div>
+            ${m.thuisUit === 'thuis' && m.spelbegeleider ? `<div style="background:rgba(255,215,0,0.15);padding:4px 8px;border-radius:6px;margin-top:4px;"><span style="color:#ffd700;font-weight:600;">🦺 Spelbegeleider: ${m.spelbegeleider}</span></div>` : ''}
+            ${m.thuisUit !== 'thuis' && m.chauffeurs ? `<div style="background:rgba(46,204,113,0.15);padding:4px 8px;border-radius:6px;margin-top:4px;"><span style="color:#2ecc71;font-weight:600;">🚗 Chauffeurs: ${m.chauffeurs}</span></div>` : ''}
+            ${m.weer ? `<div style="font-size:0.7rem;">🌤 ${m.weer}</div>` : ''}
+            ${m.info ? `<div style="font-size:0.7rem;opacity:0.8;margin-top:4px;">ℹ️ ${m.info}</div>` : ''}
           </div>
           <div class="mix-players">${m.spelers?.map(s => `<span class="mix-player">${s}</span>`).join('') || '<span style="opacity:0.5;">Geen spelers geselecteerd</span>'}</div>`;
         
@@ -2204,8 +2205,7 @@
       
       document.getElementById('upcomingMatches').innerHTML = upcoming.slice(0, 5).map(m => {
         if (m.isEvent) {
-          const evThuisUit = m.thuisUit === 'thuis' ? '(thuis)' : '(uit)';
-          return `<div class="programma-item" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander} <span style="font-size:0.55rem;opacity:0.6;">${evThuisUit}</span></div><span class="badge" style="background:rgba(155,89,182,0.8);">EVENT</span></div>`;
+          return `<div class="programma-item" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander}</div><span class="badge" style="background:rgba(155,89,182,0.8);">EVENT</span></div>`;
         }
         const thuisUit = m.type === 'thuis' ? '(thuis)' : '(uit)';
         return `<div class="programma-item"><div class="date">${m.datum}</div><div class="opp">${m.tegenstander} <span style="font-size:0.55rem;opacity:0.6;">${thuisUit}</span></div><span class="badge competitie">COMPETITIE</span></div>`;
@@ -2341,12 +2341,11 @@
         html += `<div class="date-header">📅 ${d}</div>`;
         grouped[d].forEach(m => {
           if (m.isMix) {
-            // Event item - link naar Events tab
-            const evThuisUit = m.thuisUit === 'thuis' ? '(thuis)' : '(uit)';
+            // Event item - link naar Events tab (thuis/uit staat al in titel)
             html += `<div class="all-match mix-entry" onclick="switchTab('events')" style="cursor:pointer;background:rgba(155,89,182,0.15);border-left:3px solid rgba(155,89,182,0.8);">
               <span class="team" style="color:rgba(155,89,182,1);">${m.teamNaam}</span>
               <div class="info">
-                <div class="opp">${m.tegenstander} <span style="font-size:0.65rem;opacity:0.6;">${evThuisUit}</span></div>
+                <div class="opp">${m.tegenstander}</div>
                 <div class="det-row" style="font-size:0.65rem;">
                   <span class="det-left">${m.verzamelTijd ? `⏰${m.verzamelTijd}` : ''}${m.verzamelPlek ? ` • 📍${m.verzamelPlek}` : ''}</span>
                   <span class="det-right" style="color:var(--accent);">Details →</span>
@@ -2362,25 +2361,11 @@
             const verzamelInfo = m.verzamelTijd && m.verzamelTijd !== 'NTB' ? m.verzamelTijd : '';
             const verzamelPlek = m.type !== 'thuis' ? (m.verzamelPlek || 'Karwei') : '';
             const scoreClass = m.uitslag ? getScoreResult(m.uitslag, m.type) : '';
-            const chauffeurs = m.chauffeurs && m.chauffeurs.length ? m.chauffeurs.join(', ') : '';
-            const spelbegeleider = m.spelbegeleider || '';
             
             let detailLeft = verzamelInfo ? `⏰${verzamelInfo}` : '';
             if (verzamelPlek && m.type !== 'thuis') detailLeft += (detailLeft ? ' • ' : '') + `📍${verzamelPlek}`;
             let detailRight = locAdres;
             if (veldInfo) detailRight += ` • 🥅${veldInfo}`;
-            
-            // Extra row voor chauffeurs (uit) of spelbegeleider (thuis)
-            let extraRow = '';
-            if (m.type === 'thuis' && spelbegeleider) {
-              extraRow = `<div class="det-row" style="margin-top:2px;"><span style="color:#ffd700;font-weight:600;font-size:0.65rem;">🦺 Spelbegeleider: ${spelbegeleider}</span></div>`;
-            } else if (m.type !== 'thuis' && chauffeurs) {
-              extraRow = `<div class="det-row" style="margin-top:2px;"><span style="color:#2ecc71;font-weight:600;font-size:0.65rem;">🚗 Chauffeurs: ${chauffeurs}</span></div>`;
-            }
-            // Opmerkingen
-            if (m.info) {
-              extraRow += `<div class="det-row" style="margin-top:2px;"><span style="opacity:0.7;font-size:0.6rem;">ℹ️ ${m.info}</span></div>`;
-            }
             
             html += `<div class="all-match" onclick="goToMatch('${m.teamId}',${m.matchIdx})" style="cursor:pointer;">
               <span class="team">${m.teamNaam}</span>
@@ -2390,7 +2375,6 @@
                   <span class="det-left">${detailLeft}</span>
                   <span class="det-right">${detailRight}</span>
                 </div>
-                ${extraRow}
               </div>
               ${m.uitslag ? `<span class="score ${scoreClass}">${m.uitslag}</span>` : `<span class="time">${m.aftrap || '-'}</span>`}
             </div>`;
